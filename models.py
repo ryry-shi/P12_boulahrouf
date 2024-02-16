@@ -8,10 +8,7 @@ from utils import (
     create_evenement_objet_update,
     get_contrat_signed,
     validate,
-    get_contract,
     create_epic_client_objet,
-    get_evenement_info,
-    get_filter_contrat_signed,
     get_id_contrat,
     post_client_info,
     validate_value_two_date,
@@ -20,7 +17,8 @@ from utils import (
     get_name_email_collabo,
     validate_prix,
     validate_value_date_contrat,
-    val_function_int
+    val_function_int,
+    permission_validation
 )
 
 import sentry_sdk
@@ -29,7 +27,7 @@ import sentry_sdk
 Base = declarative_base()
 
 
-class Collaborater(Base):
+class Collaborator(Base):
     __tablename__ = "collaborater"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -47,17 +45,18 @@ class Collaborater(Base):
 
     @staticmethod
     def get_all(session):
-        return session.query(Collaborater).all()
+        return session.query(Collaborator).all()
 
     @staticmethod
     def get_by_name(session, name: str):
-        return session.query(Collaborater).get(Collaborater.nom == name)
+        return session.query(Collaborator).get(Collaborator.nom == name)
 
     @staticmethod
     def create(session):
-        user_values, affiliation, permission = create_user_obj()
+        affiliation, permission = permission_validation()
+        user_values = create_user_obj()
         try:
-            user = Collaborater(
+            user = Collaborator(
                 nom=user_values["nom"],
                 password=user_values["password"],
                 email=user_values["email"],
@@ -66,21 +65,21 @@ class Collaborater(Base):
             )
             session.add(user)
             session.commit()
-            sentry_sdk.capture_message(f"Collaborater créé : {user}")
+            sentry_sdk.capture_message(f"Collaborator créé : {user}")
         except Exception as e:
             sentry_sdk.capture_exception(f"Exception, {e}")
 
     @staticmethod
     def update(session, value):
-        collabo_gestionn = Collaborater(value.nom)
+        collabo_gestionn = Collaborator(value.nom)
         try:
             if collabo_gestionn[0].permission == "gestion":
                 list_fields = get_name_email_collabo()
                 values_dict = validate(list_fields)
                 collabo_session = (
-                    session.query(Collaborater)
-                    .filter(Collaborater.nom == values_dict["nom"])
-                    .filter(Collaborater.email == values_dict["email"])
+                    session.query(Collaborator)
+                    .filter(Collaborator.nom == values_dict["nom"])
+                    .filter(Collaborator.email == values_dict["email"])
                 )
                 user_values, affiliation, permission = create_user_obj()
                 for row in collabo_session:
@@ -91,20 +90,20 @@ class Collaborater(Base):
                     row.permission = permission
                     session.add(row)
                     session.commit()
-            sentry_sdk.capture_message(f"Mise a jour Collaborater : {row}")  # todo
+            sentry_sdk.capture_message(f"Mise a jour Collaborator : {row}")  # todo
         except Exception as e:
             sentry_sdk.capture_exception(f"Exception, {e}")
 
     @staticmethod
     def delete(session, value):
         try:
-            user = session.query(Collaborater).filter(Collaborater.id == id)
+            user = session.query(Collaborator).filter(Collaborator.id == id)
             if not user:
                 sentry_sdk.capture_exception(f"Aucun utilisateur")
             for i in user:
                 session.delete(i)
                 session.commit()
-            sentry_sdk.capture_message(f"Delete Collaborater : {user}")
+            sentry_sdk.capture_message(f"Delete Collaborator : {user}")
         except Exception as e:
             sentry_sdk.capture_exception(f"Exception, {e}")
 
@@ -119,7 +118,7 @@ class Epic_Client(Base):
     entreprise = Column(String(30))
     creation = Column(DateTime(timezone=True))
     maj_contact = Column(DateTime(timezone=True))
-    contact = Column(String(250), ForeignKey(Collaborater.nom))
+    contact = Column(String(250), ForeignKey(Collaborator.nom))
 
     def __str__(self) -> str:
         return f"('Le Client D'Epic {self.nom!r}{self.email!r}{self.telephone!r}{self.entreprise!r}{self.creation!r}')"
@@ -175,7 +174,7 @@ class Epic_Client(Base):
         if not user:
             # print("Le client n'existe pas dans la base de données.")
             return
-        for event in get_evenement_info(user[0].id):
+        for event in Evenement.get_by_id(user[0].id):
             session.delete(event)
 
         for contrat in get_id_contrat(user[0].id):
@@ -249,7 +248,7 @@ class Contrat(Base):
             # Choisis l'id du contrat
             contrat_un = get_id_contrat()
             # Crée la session
-            sess_contrat = get_contract(contrat_un)
+            sess_contrat = Contrat.get_by_id(contrat_un)
             
             if value.nom != sess_contrat[0].contact:
                 return None
@@ -271,7 +270,7 @@ class Contrat(Base):
 
     @staticmethod
     def delete(session, id):
-        contrat = get_contract(id)
+        contrat = Contrat.get_by_id(id)
         if contrat is not None:
             evenement_session = session.query(Evenement).filter(
                 Evenement.contrat_id == contrat[0].id
@@ -293,7 +292,7 @@ class Evenement(Base):
     client_contact = Column(ForeignKey("epic_client.email"), nullable=False)
     event_start = Column(DateTime(timezone=True))
     event_end = Column(DateTime(timezone=True))
-    support_contact = Column(String(30), ForeignKey(Collaborater.nom), nullable=False)
+    support_contact = Column(String(30), ForeignKey(Collaborator.nom), nullable=False)
     location = Column(String(30))
     attendes = Column(Integer)
     NOTES = Column(String(30))
@@ -304,7 +303,7 @@ class Evenement(Base):
     @staticmethod
     def create(session, value):
         try:
-            contrat_sess_signed = get_filter_contrat_signed()
+            contrat_sess_signed = Contrat.get()
             dict_name_email = get_name_email()
             name_email = validate(dict_name_email)
             epic = get_client_info(name_email["nom"], name_email["email"])
@@ -340,7 +339,7 @@ class Evenement(Base):
     @staticmethod
     def update(session, evenement_upgrape):
         evenement_identifiant = val_function_int(evenement_upgrape)
-        evenement_session = get_evenement_info(evenement_identifiant)
+        evenement_session = Evenement.get_by_id(evenement_identifiant)
         event_start, event_end = validate_value_two_date("création de l'evenement ? ", "fin de l'évenement ? ")
         try:
             evenement_update = create_evenement_objet_update()
@@ -355,7 +354,7 @@ class Evenement(Base):
     def delete(session, evenement_delete):
         evenement_identifiant = val_function_int(evenement_delete)
         try:
-            session_evenement = get_evenement_info(evenement_identifiant)
+            session_evenement = Evenement.get_by_id(evenement_identifiant)
             if not session_evenement:
                 sentry_sdk.capture_exception(f"Aucun Evenement")
                 return

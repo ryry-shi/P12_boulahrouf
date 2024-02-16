@@ -1,15 +1,15 @@
-from utils import get_choice, int_validator, get_user_info
-from .models import Client, Contrat, Evenement, Collaborater
+from utils import int_validator
+from .models import Client, Contrat, Evenement, Collaborator
 import bcrypt
 
 
 def connect():
     inp = input("Si vous n'avez pas de compte appuyez 1 !")
     if inp == str(1):
-        return Collaborater.create()
+        return Collaborator.create()
     nom = input("Votre nom : ")
     password = input("Votre password : ")
-    users = get_user_info(nom)
+    users = Collaborator.get_by_name(nom)
     if not users:
         print("Aucun utilisateurs trouver ! ")
         return connect()
@@ -18,7 +18,7 @@ def connect():
         password=password.encode("utf-8"), hashed_password=mdp.encode("utf-8")
     )
     if mdp_boolean is True:
-        user_session = get_user_info(nom)
+        user_session = Collaborator.get_by_name(nom)
         for i in user_session:
             print(f"Bonjour {i.nom} {i.email} {i.affiliation}")
         return i
@@ -31,12 +31,12 @@ def choice_menu_user(value):
     while True:
         choice_menu_client = get_choice("1: créer\n2: update\n3: delete\n")
         if choice_menu_client == 1:
-            Collaborater.create()
+            Collaborator.create()
         elif choice_menu_client == 2:
-            Collaborater.update(value)
+            Collaborator.update(value)
         elif choice_menu_client == 3:
-            id = input("Choissisez le nom du collaborater a delete ! ")
-            Collaborater.delete(id)
+            id = input("Choissisez le nom du Collaborator a delete ! ")
+            Collaborator.delete(id)
 
 
 def permission_validation():

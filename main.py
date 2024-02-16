@@ -5,8 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 from models import Base
-from utils import choices_command
-from application import connect
+from interface import choices_command, connect
 
 
 if __name__ == "__main__":
