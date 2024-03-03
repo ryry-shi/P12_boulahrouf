@@ -1,131 +1,180 @@
-from utils import int_validator
-from .models import Client, Contrat, Evenement, Collaborator
+import MySQLdb
 import bcrypt
+from menu import Menu
+from menu_factory import create_menu_factory
+from models import Collaborator, Contract, EpicClient, Event
+from forms import get_id_form, get_create_contract_form, get_create_epic_client_form, get_create_event_form, get_find_collaborator_form, get_find_user_form, get_login_form, get_register_form, get_update_epic_client_form
+from state import save, read
+
+
+def read_only():
+    Menu(f"Menu support",
+        (               
+            ("Consulter les clients",  read_clients),
+            ("Consulter les Contracts", read_contracts),
+            ("Consulter les évenements",  read_events),
+            ("Consuler les contrat no signed",  read_contract_signed),
+            ("Retour", print)
+        )
+    ).run()
+
+def read_contracts():
+    contracts = Contract.get_all()
+    if not contracts:
+        print("Aucun Contract afficher")
+    else:
+        input("\n".join(str(contract) for contract in contracts))
+    
+
+def read_clients():
+    clients = EpicClient.get_all()
+    input("\n".join(str(client) for client in clients))
+
+
+def read_contract_signed():
+    contracts = Contract.get_no_signed()
+    if not contracts:
+        print("Aucun Contract afficher")
+    else:
+        input("\n".join(str(contract) for contract in contracts))
+
+
+def read_events(no_support: bool = False):
+    events = Event.get_all(no_support)
+    input("\n".join(str(event) for event in events))
 
 
 def connect():
-    inp = input("Si vous n'avez pas de compte appuyez 1 !")
-    if inp == str(1):
-        return Collaborator.create()
-    nom = input("Votre nom : ")
-    password = input("Votre password : ")
-    users = Collaborator.get_by_name(nom)
-    if not users:
-        print("Aucun utilisateurs trouver ! ")
-        return connect()
-    mdp = users[0].password
-    mdp_boolean = bcrypt.checkpw(
-        password=password.encode("utf-8"), hashed_password=mdp.encode("utf-8")
-    )
-    if mdp_boolean is True:
-        user_session = Collaborator.get_by_name(nom)
-        for i in user_session:
-            print(f"Bonjour {i.nom} {i.email} {i.affiliation}")
-        return i
-    elif mdp_boolean is False:
-        print("Erreur, le mot de passe ou le nom est incorecct ! ")
-        return connect
-
-
-def choice_menu_user(value):
-    while True:
-        choice_menu_client = get_choice("1: créer\n2: update\n3: delete\n")
-        if choice_menu_client == 1:
-            Collaborator.create()
-        elif choice_menu_client == 2:
-            Collaborator.update(value)
-        elif choice_menu_client == 3:
-            id = input("Choissisez le nom du Collaborator a delete ! ")
-            Collaborator.delete(id)
-
-
-def permission_validation():
-    message = "Votre rôle: commercial - 1, support - 2, gestion - 3"
-    affiliation_val = get_choice(message)
-    if affiliation_val == 1:
-        permission = "commercial"
-    elif affiliation_val == 2:
-        permission = "support"
-    elif affiliation_val == 3:
-        permission = "gestion"
-    return affiliation_val, permission
-
-
-def get_choice(message):
-    while True:
-        print(message)
-        affiliation = input()
-        try:
-            affiliation_val = int_validator(affiliation)
-            if affiliation_val in {1, 2, 3} :
-                return affiliation_val
-        except ValueError:
-            return None
-        affiliation = input("Choix invalide. Veuillez entrer un numéro valide!!! ")
-
-
-def choice_gestionnaire_menu(value):
-    choice = get_choice("1: utilisateur\n2: contrat\n3: delete evenement\n")
-    if choice == 1:
-        choice_menu_user(value)
-    elif choice == 2:
-        choices_menu_contrat(value)
-    elif choice == 3:
-        Evenement.delete(value)
+    form_data = get_login_form()
+    email, password = form_data["email"], form_data["password"]
+    collaborator = Collaborator.get_by_email(email)
+    if collaborator:
+        if bcrypt.checkpw(password.encode("utf-8"), collaborator.password.encode("utf-8")):
+            save("current_user", collaborator)
+            greetings()
+        else:
+            print("Le mot de passe est incorrect ! ")
     else:
-        pass
+        print("Email d'utilisateur inconnu ! ")
+
+def greetings():
+
+    current_user = read("current_user")
+    
+    print(f"Bienvenue {read("current_user").name} !")
+    
+    if current_user.permission == "gestion":    
+        create_menu_factory("GESTIONNAIRE")(
+            connect=connect,
+            register=register,
+            update_collaborator=update_collaborator,
+            delete_collaborator=delete_collaborator
+        ).run()
+    elif current_user.permission == "commercial":
+        create_menu_factory("COMMERCIAL")(
+            read_only=read_only,
+            create_client=create_client,
+            update_client=update_client,
+            delete_client=delete_client,
+            create_contract=create_contract,
+            update_contract=update_contract,
+            create_event=create_event
+        ).run()
+    elif current_user.permission == "support":
+        create_menu_factory("SUPPORT")(
+            read_only=read_only
+        ).run()
 
 
-def choice_commercial_menu(value):
-    choice = get_choice("1: client\n2: contrat\n3: Créer évenement\n")
-    if choice == 1:
-        choice_menu_client(value)
-    elif choice == 2:
-        choices_menu_contrat(value)
-    elif choice == 3:
-        Evenement.update(value)
+def register():
+    form_data = get_register_form()
+    try:
+        Collaborator.create(**form_data)
+    except ValueError as e:
+        input(f"Erreur: {e} ")
+    except MySQLdb.IntegrityError:
+        input(f"Erreur: Email déja utilisée")
+    create_menu_factory("PRINCIPAL")(connect, register).run()
 
 
-def choices_command(value):
-    while True:
-        if not value.nom:
-            return connect()
-        if value.permission == "gestion":
-            choice_gestionnaire_menu(value)
-        if value.permission == "commercial":
-            choice_commercial_menu(value)
-        else:
-            pass
+def create_collaborator():
+    form_data = get_register_form()
+    Collaborator.create(**form_data)
+    create_menu_factory("GESTIONNAIRE")(connect, register, update_collaborator, delete_collaborator).run()
+    
+
+def update_collaborator():
+    form_data_email = get_find_collaborator_form()
+    Collaborator.update(**form_data_email)
+    create_menu_factory("GESTIONNAIRE")(connect, register, update_collaborator, delete_collaborator).run()
 
 
-def choices_menu_contrat(session, value):
-    if value.permission == "commercial" or "gestion":
-        message = "create: 1\nmaj: 2\ndel: 3\n"
-        choices = get_choice(message)
-        if choices == 1:
-            Contrat.create()
-        elif choices == 2:
-            Contrat.update(value)
-        elif choices == 3:
-            id = int(input("Choisissez le contrat que vous souhaitez supprimez "))
-            Contrat.delete(id)
-        elif choices == 4:
-            Evenement.create(value)
-        else:
-            return value
-    else:
-        print("Vous n'avez pas acces a ce menu, déconnexion")
-        session.rollback()
+def delete_collaborator():
+    form_data_email = get_find_collaborator_form()
+    Collaborator.delete(**form_data_email)
+    create_menu_factory("GESTIONNAIRE")(connect, register, update_collaborator, delete_collaborator).run()
+    
+    
+def create_client():
+    form_data = get_create_epic_client_form()
+    EpicClient.create(contact_id=read("current_user").id, **form_data)
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_client, delete_client).run()
 
 
-def choice_menu_client(value):
-    while True:
-        choice_menu_client = get_choice("1: create\n2: update\n2 3: delete\n ")
-        if choice_menu_client == 1:
-            Client.create(value)
-        elif choice_menu_client == 2:
-            Client.update(value)
-        elif choice_menu_client == 3:
-            Client.delete(value)
-        else:
-            break
+def update_client():
+    form_data_email = get_find_user_form()
+    EpicClient.update(**form_data_email)
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_client, delete_client).run()
+    
+    
+def delete_client():
+    form_data_email = get_find_user_form()
+    EpicClient.delete(**form_data_email)
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_client, delete_client).run()
+    
+    
+def create_client():
+    form_data = get_create_epic_client_form()
+    EpicClient.create(contact_id=read("current_user").id, **form_data)
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_client, delete_client).run()
+
+
+def update_client():
+    form_data_email = get_find_user_form()
+    EpicClient.update(**form_data_email)
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_client, delete_client).run()
+   
+    
+def delete_client():
+    form_data_email = get_find_user_form()
+    EpicClient.delete(**form_data_email)
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_client, delete_client).run()
+  
+    
+def create_contract():
+    form_data = get_create_contract_form()
+    Contract.create(contact_id=read("current_user").id, **form_data)
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_contract, delete_client).run()
+    
+    
+def update_contract():
+    form_data = get_id_form()
+    Contract.update(**form_data)
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_contract, delete_client).run()
+  
+    
+def delete_contract():
+    form_data = get_id_form()
+    Contract.delete(**form_data)
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_contract, delete_client).run()
+
+
+def create_event():
+    form_data = get_create_event_form()
+    Event.create(**form_data)
+    
+    
+def update_event():
+    form_data = get_id_form()
+    Event.update(**form_data)
+    

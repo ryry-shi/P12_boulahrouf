@@ -4,8 +4,10 @@ import sentry_sdk
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
+from menu_factory import create_menu_factory
 from models import Base
-from interface import choices_command, connect
+from interface import connect, register
+from state import save
 
 
 if __name__ == "__main__":
@@ -16,19 +18,13 @@ if __name__ == "__main__":
     )
 
     load_dotenv()
-
-    MY_PROTOCOL = os.getenv("PROTOCOL")
-    MY_PASSWORD = os.getenv("PASSWORD")
-    MY_USERNAME = os.getenv("USERNAME")
-    MY_HOST = os.getenv("HOST")
-    MY_DATABASE = os.getenv("DATABASE")
     
-    engine = create_engine(f"{MY_PROTOCOL}://{MY_USERNAME}:{MY_PASSWORD}@{MY_HOST}/{MY_DATABASE}")
+    engine = create_engine(f"{os.getenv("PROTOCOL")}://{os.getenv("USERNAME")}:{os.getenv("PASSWORD")}@{os.getenv("HOST")}/{os.getenv("DATABASE")}")
     Session = sessionmaker(bind=engine)
     session = Session()
 
+    save("session", session)
+
     Base.metadata.create_all(bind=engine)
 
-    while True:
-        user = connect()
-        choices_command(user)
+    create_menu_factory("PRINCIPAL")(connect, register).run()
