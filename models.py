@@ -61,8 +61,8 @@ class Collaborator(Base):
 
     @staticmethod
     def update(email: str) -> None:
-        obj = Collaborator.get_by_email(read("session"), email)
-        if not obj:
+        obj = Collaborator.get_by_email(email)
+        if not obj or read("current_user").affiliation != 3:
             print("Aucun utilisateurs avec cette email")
         form_data = get_register_form()
         obj.name = form_data["name"]
@@ -203,7 +203,7 @@ class Contract(Base):
     def update(id: int) -> None:
         obj = Contract.get_by_id(id)
         epic_client = EpicClient.get_by_id(obj.epic_client)
-        if epic_client.contact_id == read("current_user").id:
+        if epic_client.contact_id == read("current_user").id or read("current_user").permission == "gestion":
             form_data = get_update_contract_form()
             obj.epic_client = form_data["epic_client"]
             obj.amount = form_data["amount"]
@@ -245,8 +245,13 @@ class Event(Base):
         return read("session").query(Event).filter(Event.support_contact != None) if no_support else read("session").query(Event).all() 
 
 
-
-
+    def get_support_contact(name):
+        obj = Collaborator.get_by_name(name)
+        if obj.permission == "support":
+            return name
+        raise ValueError("Mauvais support(Collaborateur avec role: support)")
+    
+    
     @staticmethod
     def create(contrat_id: Contract,
                event_start: DateTime, event_end: DateTime, 
@@ -265,7 +270,7 @@ class Event(Base):
             location = location,
             attendes = attendes,
             notes = notes,
-            support_contact = support_contact
+            support_contact = Event.get_support_contact(support_contact)
         )
         create_or_update(obj)
           
@@ -274,17 +279,18 @@ class Event(Base):
         obj = Event.get_by_id(id)
         if not obj:
             return
-        form_data = get_update_event_form()
-        obj.contrat_id = form_data["contrat_id"]
-        obj.client_name = form_data["client_name"]
-        obj.client_email = form_data["client_email"]
-        obj.event_start = form_data["event_start"]
-        obj.event_end = form_data["event_end"]
-        obj.support_contact = form_data["support_contact"]
-        obj.location = form_data["location"]
-        obj.attendes = form_data["attendes"]
-        obj.notes = form_data["notes"]
-        create_or_update(obj)   
+        if read("current_user").permission == "gestion" or read("current_user").name == obj.support_contact:
+            form_data = get_update_event_form()
+            obj.contrat_id = form_data["contrat_id"]
+            obj.client_name = form_data["client_name"]
+            obj.client_email = form_data["client_email"]
+            obj.event_start = form_data["event_start"]
+            obj.event_end = form_data["event_end"]
+            obj.support_contact = form_data["support_contact"]
+            obj.location = form_data["location"]
+            obj.attendes = form_data["attendes"]
+            obj.notes = form_data["notes"]
+            create_or_update(obj)   
 
 
     @staticmethod

@@ -65,10 +65,13 @@ def greetings():
     
     if current_user.permission == "gestion":    
         create_menu_factory("GESTIONNAIRE")(
-            connect=connect,
-            register=register,
+            read_only=read_only,
+            create_collaborator=create_collaborator,
             update_collaborator=update_collaborator,
-            delete_collaborator=delete_collaborator
+            delete_collaborator=delete_collaborator,
+            create_contract_gestion=create_contract_gestion,
+            update_contract_gestion=update_contract_gestion,
+            update_event=update_event
         ).run()
     elif current_user.permission == "commercial":
         create_menu_factory("COMMERCIAL")(
@@ -76,9 +79,9 @@ def greetings():
             create_client=create_client,
             update_client=update_client,
             delete_client=delete_client,
-            create_contract=create_contract,
             update_contract=update_contract,
-            create_event=create_event
+            create_event=create_event,
+            delete_event=delete_event
         ).run()
     elif current_user.permission == "support":
         create_menu_factory("SUPPORT")(
@@ -99,82 +102,120 @@ def register():
 
 def create_collaborator():
     form_data = get_register_form()
-    Collaborator.create(**form_data)
+    try:
+        Collaborator.create(**form_data)
+    except ValueError as e:
+        input(f"Erreur: {e} ")     
+    except MySQLdb.IntegrityError:
+        input(f"Erreur: Email déja utilisée") 
     create_menu_factory("GESTIONNAIRE")(connect, register, update_collaborator, delete_collaborator).run()
     
 
 def update_collaborator():
     form_data_email = get_find_collaborator_form()
-    Collaborator.update(**form_data_email)
+    try:
+        Collaborator.update(**form_data_email)
+    except ValueError as e:
+        input(f"Erreur: {e} ")  
+    except IndexError:
+        input(f"Erreur: mauvais email")
     create_menu_factory("GESTIONNAIRE")(connect, register, update_collaborator, delete_collaborator).run()
 
 
 def delete_collaborator():
     form_data_email = get_find_collaborator_form()
-    Collaborator.delete(**form_data_email)
+    try:
+        Collaborator.delete(**form_data_email)
+    except IndexError:
+        input(f"Erreur: mauvais email")
     create_menu_factory("GESTIONNAIRE")(connect, register, update_collaborator, delete_collaborator).run()
     
     
 def create_client():
     form_data = get_create_epic_client_form()
-    EpicClient.create(contact_id=read("current_user").id, **form_data)
-    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_client, delete_client).run()
+    try:
+        EpicClient.create(contact_id=read("current_user").id, **form_data)
+    except MySQLdb.IntegrityError:
+        input(f"Erreur: Email déja utilisée")
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, update_client, delete_client, delete_event).run()
 
 
 def update_client():
     form_data_email = get_find_user_form()
-    EpicClient.update(**form_data_email)
-    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_client, delete_client).run()
+    try:
+        EpicClient.update(**form_data_email)
+    except IndexError:
+        input("Vous avez taper un identifiant qui n'existe pas")
+    except MySQLdb.IntegrityError:
+        input(f"Erreur: Email déja utilisée")
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, update_client, delete_client, delete_event).run()
     
     
 def delete_client():
     form_data_email = get_find_user_form()
-    EpicClient.delete(**form_data_email)
-    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_client, delete_client).run()
+    try:
+        EpicClient.delete(**form_data_email)
+    except IndexError:
+        input("Vous avez taper un identifiant qui n'existe pas")
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, update_client, delete_client, delete_event).run()
     
     
-def create_client():
-    form_data = get_create_epic_client_form()
-    EpicClient.create(contact_id=read("current_user").id, **form_data)
-    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_client, delete_client).run()
-
-
-def update_client():
-    form_data_email = get_find_user_form()
-    EpicClient.update(**form_data_email)
-    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_client, delete_client).run()
-   
-    
-def delete_client():
-    form_data_email = get_find_user_form()
-    EpicClient.delete(**form_data_email)
-    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_client, delete_client).run()
-  
-    
-def create_contract():
+def create_contract_gestion():
     form_data = get_create_contract_form()
     Contract.create(contact_id=read("current_user").id, **form_data)
-    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_contract, delete_client).run()
+    create_menu_factory("GESTIONNAIRE")(create_collaborator, update_collaborator, delete_collaborator, create_contract_gestion, update_contract_gestion, update_event).run()
+    
+    
+def update_contract_gestion():
+    form_data = get_id_form()
+    try:
+        Contract.update(**form_data)
+    except IndexError:
+        input("Vous avez taper un identifiant qui n'existe pas")
+    create_menu_factory("GESTIONNAIRE")(create_collaborator, update_collaborator, delete_collaborator, create_contract_gestion, update_contract_gestion, update_event).run()
+    
+    
+
     
     
 def update_contract():
     form_data = get_id_form()
-    Contract.update(**form_data)
-    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_contract, delete_client).run()
+    try:
+        Contract.update(**form_data)
+    except IndexError:
+        input("Vous avez taper un identifiant qui n'existe pas")
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, update_contract, create_event).run()
   
     
 def delete_contract():
     form_data = get_id_form()
-    Contract.delete(**form_data)
-    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, create_contract, update_contract, delete_client).run()
+    try:
+        Contract.delete(**form_data)
+    except IndexError:
+        input("Vous avez taper un identifiant qui n'existe pas")
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, update_contract, create_event).run()
 
 
 def create_event():
     form_data = get_create_event_form()
-    Event.create(**form_data)
-    
+    try:
+        Event.create(**form_data)
+    except ValueError:
+        input(f"Erreur: mauvais support")
+        create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, update_contract, create_event, delete_event).run()
     
 def update_event():
     form_data = get_id_form()
-    Event.update(**form_data)
+    try:
+        Event.update(**form_data)
+    except IndexError:
+        input("Vous avez taper un identifiant qui n'existe pas")
     
+    
+def delete_event():
+    form_data = get_id_form()
+    try:
+        Event.delete(**form_data)
+    except IndexError:
+        input("Vous avez taper un identifiant qui n'existe pas")
+    create_menu_factory("COMMERCIAL")(read_only, create_client, update_client, delete_client, update_contract, create_event, delete_event).run()

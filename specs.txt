@@ -9,7 +9,7 @@ Besoins individuels : équipe de gestion
 
      Créer, mettre à jour et supprimer des collaborateurs dans le système CRM.: OK
      Créer et modifier tous les contrats.: OK
-     Filtrer l’affichage des événements, par exemple : afficher tous les événements qui n’ont pas de « support » associé.: KO
+     Filtrer l’affichage des événements, par exemple : afficher tous les événements qui n’ont pas de « support » associé.: OK
      Modifier des événements (pour associer un collaborateur support à l’événement).: OK
 
 Besoins individuels : équipe commerciale

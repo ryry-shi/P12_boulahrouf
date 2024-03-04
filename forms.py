@@ -154,6 +154,7 @@ def get_create_event_form() -> Dict[str, str | Any]:
             {"name": "contrat_id", "description": "Contrat", "validator": int_validator},
             {"name": "event_start", "description": "Début", "validator": past_date_validator},
             {"name": "event_end", "description": "Fin", "validator": past_date_validator},
+            {"name": "support_contact", "description": "Contact", "validator": str_validator},
             {"name": "location", "description": "location", "validator": str_validator},
             {"name": "attendes", "description": "attendes", "validator" : int_validator},
             {"name": "notes", "description": "Description", "validator" : str_validator}
