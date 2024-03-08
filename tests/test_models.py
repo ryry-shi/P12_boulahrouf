@@ -1,5 +1,6 @@
 import os
 from unittest.mock import MagicMock
+from dotenv import load_dotenv
 import pytest
 
 from sqlalchemy import create_engine
@@ -7,8 +8,10 @@ from sqlalchemy.orm import sessionmaker
 from models import Collaborator, Contract, EpicClient, Event
 from models import Base
 
+load_dotenv()
 
-engine = create_engine(f"{os.getenv("PROTOCOL")}://{os.getenv("USERNAME")}:{os.getenv("PASSWORD")}@{os.getenv("HOST")}/test")
+
+engine = create_engine(f"{os.getenv("PROTOCOL")}://root:{os.getenv("PASSWORD")}@{os.getenv("HOST")}/test")
 Base.metadata.drop_all(engine)
 Base.metadata.create_all(engine)
 session = sessionmaker(bind=engine)()

@@ -20,7 +20,6 @@ from utils import (
 )
 
 
-
 def test_str_validator():
     assert str_validator("ploupisme") == "ploupisme"
     assert str_validator("") == None
