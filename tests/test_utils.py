@@ -1,4 +1,8 @@
 import datetime
+import pytest
+import mock
+import builtins
+
 import utils
 from utils import (
     email_validator,
@@ -14,27 +18,25 @@ from utils import (
     submit_form,
     ask_user_choice
 )
-import pytest
-import mock
-import builtins
+
 
 
 def test_str_validator():
     assert str_validator("ploupisme") == "ploupisme"
     assert str_validator("") == None
-    with pytest.raises(ValueError): 
+    with pytest.raises(ValueError):
         str_validator("test")
     assert type(str_validator("ploupisme")) == str
 
 
 def test_phone_validator():
-    assert phone_validator("0102030405") == "0102030405" 
+    assert phone_validator("0102030405") == "0102030405"
     assert phone_validator("") == None
     with pytest.raises(ValueError):
         phone_validator("12345")
         phone_validator("123459875444456")
         phone_validator("saas!axaxaxa")
-        
+
 
 def test_password_validator():
     assert password_validator("12345678") == "12345678"
@@ -82,6 +84,7 @@ def test_future_date_validator():
         future_date_validator("9999-11-11")
         future_date_validator("11-9999-11")
 
+
 def test_past_date_validator():
     assert past_date_validator("2000-11-11") == datetime.datetime.fromisoformat("2000-11-11")
     assert past_date_validator("") == None
@@ -90,12 +93,13 @@ def test_past_date_validator():
         past_date_validator("2000/13/10")
         past_date_validator("9999-10-10")
         past_date_validator("12-2020-01")
-        
-        
+
+
 def test_two_date_validator():
     assert two_date_validator("2022-01-01", "2023-01-01") != None
     with pytest.raises(ValueError):
         two_date_validator("2023-01-01", "2022-01-01")
+
 
 def test_positive_int_validator():
     with mock.patch.object(utils, 'positive_int_validator', lambda x: int(x)):
@@ -106,11 +110,10 @@ def test_positive_int_validator():
 
 
 def test_user_input():
-    with mock.patch.object(builtins, 'input', lambda _: 'tadatatatata'): 
+    with mock.patch.object(builtins, 'input', lambda _: 'tadatatatata'):
         assert user_input("test", str_validator) == 'tadatatatata'
-    with mock.patch.object(builtins, 'input', lambda _: "42"): 
+    with mock.patch.object(builtins, 'input', lambda _: "42"):
         assert user_input("test", int_validator) == 42
-    
 
 
 def test_submit_form():
@@ -133,5 +136,5 @@ def test_submit_form():
 
 
 def test_ask_user_choice():
-    with mock.patch.object(builtins, 'input', lambda _: "2"): 
+    with mock.patch.object(builtins, 'input', lambda _: "2"):
         assert ask_user_choice(3) == 1

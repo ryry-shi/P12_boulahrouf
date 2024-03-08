@@ -18,7 +18,7 @@ if __name__ == "__main__":
     )
 
     load_dotenv()
-    
+
     engine = create_engine(f"{os.getenv("PROTOCOL")}://{os.getenv("USERNAME")}:{os.getenv("PASSWORD")}@{os.getenv("HOST")}/{os.getenv("DATABASE")}")
     Session = sessionmaker(bind=engine)
     session = Session()

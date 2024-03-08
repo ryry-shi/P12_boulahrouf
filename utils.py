@@ -1,4 +1,9 @@
-from typing import Any, Callable, Dict, List
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List
+)
 import re
 import os
 from datetime import datetime
@@ -58,7 +63,7 @@ def email_validator(value: str) -> str | None:
     if not bool(re.fullmatch(r"^(?!\.)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", value)):
         raise ValueError()
     return value
-    
+
 
 def date_validator(value: str) -> datetime | None:
     """
@@ -94,6 +99,7 @@ def past_date_validator(value: str) -> datetime | None:
     if value_date > datetime.today():
         raise ValueError()
     return value_date
+
 
 def two_date_validator(first_value: str, second_value: str) -> datetime:
     """
@@ -135,7 +141,7 @@ def submit_form(title : str, fields: List[Dict[str, str | Callable]]) -> dict:
     """
         Soumet un formulaire et attend qu'on le remplisse
         Renvoi un dictionnaire avec les réponses données
-    """ 
+    """
     data = {}
     clear_screen()
     print(f".: {title} :.")
@@ -155,6 +161,10 @@ def ask_user_choice(nb_of_options: int) -> int:
                 return choice - 1
         except ValueError:
             pass
+
+
+def print_error(error: str) -> None:
+    input(f"Erreur: {error}\n")
 
 
 def clear_screen():

@@ -1,5 +1,13 @@
-from typing import Callable, Iterable, Tuple
-from utils import ask_user_choice, clear_screen
+from typing import (
+    Callable,
+    Iterable,
+    Tuple
+)
+
+from utils import (
+    ask_user_choice,
+    clear_screen
+)
 
 
 class Menu:
