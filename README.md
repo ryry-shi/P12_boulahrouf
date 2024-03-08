@@ -1,3 +1,13 @@
+### Prérequis
+- `installer mysql server`
+- ``créer un fichier env avec ces paramètre`
+- 
+- `PROTOCOL = "mysql"`
+- `USERNAME = "root"`
+-  `PASSWORD = "MDP_DU_SERVER_MYSQL"`
+-  `HOST = "localhost"`
+- `DATABASE = "data"`
+
 ### Description
 - `CRM d'Epic`
 
